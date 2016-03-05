@@ -1,28 +1,8 @@
-// Package light is a library for interacting with the lights connected to a Philips Hue bridge. Commands include
-// getting and setting light attributes as well as discovering and deleting lights.
-package light
+// Package message contains the message definitions that can be sent to and from the Philips Hue bridge.
+package message
 
-import (
-	"encoding/json"
-	"fmt"
-
-	log "github.com/Sirupsen/logrus"
-
-	"github.com/drombosky/disco-dance-party/hue"
-)
-
-// Client represents a client to control lights via the Hue hub.
-type Client struct {
-	client *hue.Client
-}
-
-// NewClient takes a *hue.Client and returns a client for interacting with lights.
-func NewClient(hueClient *hue.Client) (client *Client, err error) {
-	return &Client{client: hueClient}, nil
-}
-
-// UserState represents the basic light state provided during sets and returned during gets.
-type UserState struct {
+// BasicState represents the basic light state provided during sets and returned during gets.
+type BasicState struct {
 	// On/Off state of the light. On=true, Off=false
 	On bool `json:"on,ompitempty"`
 	// Brightness of the light. This is a scale from the minimum brightness the light is capable of, 1, to the maximum
@@ -51,10 +31,10 @@ type UserState struct {
 	Effect string `json:"effect,omitempty"`
 }
 
-// State represents the state of the light as reported by the Hue hub.
-type State struct {
+// LightState represents the state of the light as reported by the Hue hub.
+type LightState struct {
 	// The basic light state provided during sets and returned during gets.
-	UserState
+	BasicState
 	// Indicates the color mode in which the light is working, this is the last command type it received. Values are “hs”
 	// for Hue and Saturation, “xy” for XY and “ct” for Color Temperature. This parameter is only present when the light
 	// supports at least one of the values.
@@ -63,10 +43,10 @@ type State struct {
 	Reachable bool `json:"reachable,omitempty"`
 }
 
-// NewState represents the new state of the light to be provided to the Hue hub.
-type NewState struct {
+// NewLightState represents the new state of the light to be provided to the Hue hub.
+type NewLightState struct {
 	// The basic state provided during sets and returned during gets.
-	UserState
+	BasicState
 	// The duration of the transition from the light’s current state to the new state. This is given as a multiple of
 	// 100ms and defaults to 4 (400ms). For example, setting transitiontime:10 will make the transition last 1 second.
 	TransitionTime int `json:"transitiontime,omitempty"`
@@ -98,7 +78,7 @@ type NewState struct {
 // version.
 type Light struct {
 	// The state of the light as reported by the Hue hub.
-	State State `json:"state,omitempty"`
+	State LightState `json:"state,omitempty"`
 	// A fixed name describing the type of light e.g. “Extended color light”.
 	Type string `json:"type,omitempty"`
 	// A unique, editable name given to the light.
@@ -121,100 +101,10 @@ type Light struct {
 	PointSymbol map[string]string `json:"pointsymbol,omitempty"`
 }
 
-// GetAll gets a list of all lights that have been discovered by the bridge.
-func (c *Client) GetAll() (resp map[string]Light, err error) {
-	log.WithFields(log.Fields{
-		"package": "github.com/drombosky/disco-dance-party/hue/light",
-		"method":  "(c *Client) GetNew",
-	}).Debugf("Get all")
-	if err = c.client.Do("GET", "/api/<username>/lights", nil, resp); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
 // GetNewResp represents ...
 type GetNewResp struct {
 	// Returns “active” if a scan is currently on-going, “none” if a scan has not been performed since the bridge was
 	// powered on, or else the date and time that the last scan was completed in ISO 8601:2004 format
 	// (YYYY-MM-DDThh:mm:ss).
 	LastScan string `json:"lastscan"`
-}
-
-// GetNew gets a list of lights that were discovered the last time a search for new lights was performed. The list of
-// new lights is always deleted when a new search is started.
-func (c *Client) GetNew() (resp *GetNewResp, err error) {
-	log.WithFields(log.Fields{
-		"package": "github.com/drombosky/disco-dance-party/hue/light",
-		"method":  "(c *Client) GetNew",
-	}).Debugf("Get new")
-	if err = c.client.Do("GET", "/api/<username>/lights/new", nil, resp); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-// Get gets the attributes and state of a given light.
-func (c *Client) Get(id string) (resp *Light, err error) {
-	log.WithFields(log.Fields{
-		"package": "github.com/drombosky/disco-dance-party/hue/light",
-		"method":  "(c *Client) Get",
-	}).Debugf("Get %v", id)
-	if err = c.client.Do("GET", fmt.Sprintf("/api/<username>/lights/%v", id), nil, resp); err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-// Rename is used to rename lights. A light can have its name changed when in any state, including when it is
-// unreachable or off.
-func (c *Client) Rename(id string, name string) (err error) {
-	type Body struct {
-		Name string `json:"name"`
-	}
-	message, err := json.Marshal(Body{Name: name})
-	if err != nil {
-		return err
-	}
-	log.WithFields(log.Fields{
-		"package":  "github.com/drombosky/disco-dance-party/hue/light",
-		"function": "(c *Client) Rename",
-		"request":  string(message),
-	}).Debugf("Rename %v to %v", id, name)
-
-	if err = c.client.Do("PUT", fmt.Sprintf("/api/<username>/lights/%v", id), message, nil); err != nil {
-		return err
-	}
-	return nil
-}
-
-// SetState allows the user to turn the light on and off, modify the hue and effects.
-func (c *Client) SetState(id string, state NewState) (err error) {
-	message, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
-	log.WithFields(log.Fields{
-		"package":  "github.com/drombosky/disco-dance-party/hue/light",
-		"function": "(c *Client) SetState",
-		"request":  string(message),
-	}).Debugf("Set state for %v to %v", id, string(message))
-
-	if err = c.client.Do("PUT", fmt.Sprintf("/api/<username>/lights/%v/state", id), message, nil); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Delete deletes a light from the bridge.
-func (c *Client) Delete(id string) (err error) {
-	log.WithFields(log.Fields{
-		"package":  "github.com/drombosky/disco-dance-party/hue/light",
-		"function": "(c *Client) Delete",
-	}).Debugf("Delete %v", id)
-
-	if err = c.client.Do("PUT", fmt.Sprintf("/api/<username>/lights/%v/state", id), nil, nil); err != nil {
-		return err
-	}
-	return nil
 }
