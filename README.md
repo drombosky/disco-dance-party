@@ -1,2 +1,3 @@
 # disco-dance-party
-Run animated lightscapes for Hue Lights
+--
+Disco Dance Party is program used for controlling Hue lights and run animations.
