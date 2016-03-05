@@ -1,6 +1,6 @@
-// Package hue is a library for interacting with the Philips Hue bridge. The client provides basic service discovery and
-// authentication for interacting with the bridge.
-package hue
+// Package client is a library for interacting with the Philips Hue bridge. The client provides basic service discovery
+// and authentication for interacting with the bridge.
+package client
 
 import (
 	"bytes"
@@ -25,17 +25,17 @@ func (e *InvalidIPError) Error() string {
 	return fmt.Sprintf("%v is not a valid IP address", e.IP)
 }
 
-// MultipleHubsError represents an error when there is more than one hub detected.
-type MultipleHubsError struct {
-	NumberOfHubs int
+// MultipleBridgesError represents an error when there is more than one Philips Hue bridges is detected.
+type MultipleBridgesError struct {
+	NumberOfBridges int
 }
 
 // Error satisfies the error interface.
-func (e *MultipleHubsError) Error() string {
-	return fmt.Sprintf("Expected 1 hub, found %v", e.NumberOfHubs)
+func (e *MultipleBridgesError) Error() string {
+	return fmt.Sprintf("Expected 1 bridge, found %v", e.NumberOfBridges)
 }
 
-// ServiceError represents an error returned from the hub.
+// ServiceError represents an error returned from the Philips Hue bridge.
 type ServiceError struct {
 	StatusCode int
 	Status     string
@@ -47,7 +47,7 @@ func (e *ServiceError) Error() string {
 	return fmt.Sprintf("Received %v %v: %v", e.StatusCode, e.Status, e.Message)
 }
 
-// Client represents a client to a Hue hub.
+// Client represents a client to a Philips Hue bridge.
 type Client struct {
 	client   *http.Client
 	endpoint *url.URL
@@ -63,7 +63,7 @@ type MeetHueResp struct {
 	InternalIP string `json:"internalipaddress"`
 }
 
-// NewClient returns a client to a Hue hub given a username.
+// NewClient returns a client to a Philips Hue bridge given a username.
 func NewClient(username string) (client *Client, err error) {
 	httpClient := &http.Client{}
 	r, err := httpClient.Get("https://www.meethue.com/api/nupnp")
@@ -89,20 +89,20 @@ func NewClient(username string) (client *Client, err error) {
 		return nil, err
 	}
 	if len(resp) != 1 {
-		return nil, &MultipleHubsError{NumberOfHubs: len(resp)}
+		return nil, &MultipleBridgesError{NumberOfBridges: len(resp)}
 	}
-	hub := resp[0]
+	bridge := resp[0]
 
 	re := regexp.MustCompile(ipRegexp)
-	if !re.MatchString(hub.InternalIP) {
-		return nil, &InvalidIPError{IP: hub.InternalIP}
+	if !re.MatchString(bridge.InternalIP) {
+		return nil, &InvalidIPError{IP: bridge.InternalIP}
 	}
 	log.WithFields(log.Fields{
 		"package":  "github.com/drombosky/disco-dance-party/hue",
 		"function": "NewClient",
-	}).Debugf("Found hub %v with IP %v", hub.ID, hub.InternalIP)
+	}).Debugf("Found bridge %v with IP %v", bridge.ID, bridge.InternalIP)
 
-	endpoint, err := url.Parse("http://" + hub.InternalIP)
+	endpoint, err := url.Parse("http://" + bridge.InternalIP)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func NewClient(username string) (client *Client, err error) {
 	return &Client{client: &http.Client{}, endpoint: endpoint, username: username}, nil
 }
 
-// Do sends a command to the to the Hue hub on behalf of the configured user.
+// Do sends a command to the to the Philips Hue bridge on behalf of the configured user.
 func (c *Client) Do(method string, address string, message []byte, resp interface{}) (err error) {
 	// Get the URL for the resource.
 	url := c.endpoint

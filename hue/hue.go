@@ -1,24 +1,16 @@
-# hue
---
-    import "github.com/drombosky/disco-dance-party/hue"
+// Package hue contains the interfaces for interacting with the Philip Hue bridge.
+package hue
 
-Package hue contains the interfaces for interacting with the Philip Hue bridge.
+import (
+	"github.com/drombosky/disco-dance-party/hue/message"
+)
 
-## Usage
-
-#### type Client
-
-```go
+// Client represents an interface for interacting with the Philips Hue bridge.
 type Client interface {
 	Do(method string, address string, message []byte, resp interface{}) (err error)
 }
-```
 
-Client represents an interface for interacting with the Philips Hue bridge.
-
-#### type Lights
-
-```go
+// Lights represents an interface for a client to control lights via the Hue bridge.
 type Lights interface {
 	// GetAll gets a list of all lights that have been discovered by the Philips Hue bridge.
 	GetAll() (resp map[string]message.Light, err error)
@@ -35,7 +27,3 @@ type Lights interface {
 	// Delete deletes a light from the Philips Hue bridge.
 	Delete(id string) (err error)
 }
-```
-
-Lights represents an interface for a client to control lights via the Hue
-bridge.
