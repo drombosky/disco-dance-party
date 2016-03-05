@@ -6,6 +6,10 @@
 //go:generate godocdown -output=hue/lights/README.md hue/lights
 //go:generate godocdown -output=hue/message/README.md hue/message
 
+// Generate mocks.
+//go:generate go get github.com/golang/mock/mockgen
+//go:generate mockgen -source hue/hue.go -destination hue/mockHue/mockHue.go -package mockHue
+
 // Disco Dance Party is program used for controlling Hue lights and run animations.
 package main
 
