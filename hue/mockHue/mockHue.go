@@ -29,6 +29,16 @@ func (_m *MockClient) EXPECT() *_MockClientRecorder {
 	return _m.recorder
 }
 
+func (_m *MockClient) Connect() error {
+	ret := _m.ctrl.Call(_m, "Connect")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockClientRecorder) Connect() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Connect")
+}
+
 func (_m *MockClient) Do(method string, address string, message []byte, resp interface{}) error {
 	ret := _m.ctrl.Call(_m, "Do", method, address, message, resp)
 	ret0, _ := ret[0].(error)

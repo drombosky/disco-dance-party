@@ -49,9 +49,11 @@ func (e *ServiceError) Error() string {
 
 // Client represents a client to a Philips Hue bridge.
 type Client struct {
+	username  string
+	connected bool
+
 	client   *http.Client
 	endpoint *url.URL
-	username string
 }
 
 // ipRegexp is a regular expression for verifying IP addresses.
@@ -64,17 +66,30 @@ type MeetHueResp struct {
 }
 
 // NewClient returns a client to a Philips Hue bridge given a username.
-func NewClient(username string) (client *Client, err error) {
+func NewClient(username string) (client *Client) {
+	return &Client{
+		username:  username,
+		connected: false,
+	}
+}
+
+// Connect performs one-time work required to connect to the Philips Hue bridge. This call is idempotent.
+func (c *Client) Connect() (err error) {
+	// Check to see if the client is already connected. If it is, there is nothing to do.
+	if c.connected {
+		return nil
+	}
+
 	httpClient := &http.Client{}
 	r, err := httpClient.Get("https://www.meethue.com/api/nupnp")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer r.Body.Close()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	log.WithFields(log.Fields{
 		"package":  "github.com/drombosky/disco-dance-party/hue",
@@ -86,16 +101,16 @@ func NewClient(username string) (client *Client, err error) {
 
 	resp := []MeetHueResp{}
 	if err = json.Unmarshal(body, &resp); err != nil {
-		return nil, err
+		return err
 	}
 	if len(resp) != 1 {
-		return nil, &MultipleBridgesError{NumberOfBridges: len(resp)}
+		return &MultipleBridgesError{NumberOfBridges: len(resp)}
 	}
 	bridge := resp[0]
 
 	re := regexp.MustCompile(ipRegexp)
 	if !re.MatchString(bridge.InternalIP) {
-		return nil, &InvalidIPError{IP: bridge.InternalIP}
+		return &InvalidIPError{IP: bridge.InternalIP}
 	}
 	log.WithFields(log.Fields{
 		"package":  "github.com/drombosky/disco-dance-party/hue",
@@ -104,14 +119,24 @@ func NewClient(username string) (client *Client, err error) {
 
 	endpoint, err := url.Parse("http://" + bridge.InternalIP)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &Client{client: &http.Client{}, endpoint: endpoint, username: username}, nil
+	c.connected = true
+	c.client = &http.Client{}
+	c.endpoint = endpoint
+	return nil
 }
 
 // Do sends a command to the to the Philips Hue bridge on behalf of the configured user.
 func (c *Client) Do(method string, address string, message []byte, resp interface{}) (err error) {
+	// Ensure the client is connected, if not connect it.
+	if !c.connected {
+		if err = c.Connect(); err != nil {
+			return err
+		}
+	}
+
 	// Get the URL for the resource.
 	url := c.endpoint
 	url.Path = strings.Replace(address, "<username>", c.username, -1)

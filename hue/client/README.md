@@ -24,6 +24,14 @@ func NewClient(username string) (client *Client, err error)
 ```
 NewClient returns a client to a Philips Hue bridge given a username.
 
+#### func (*Client) Connect
+
+```go
+func (c *Client) Connect() (err error)
+```
+Connect performs one-time work required to connect to the Philips Hue bridge.
+This call is idempotent.
+
 #### func (*Client) Do
 
 ```go

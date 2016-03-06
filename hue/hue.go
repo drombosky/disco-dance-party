@@ -7,6 +7,9 @@ import (
 
 // Client represents an interface for interacting with the Philips Hue bridge.
 type Client interface {
+	// Connect performs one-time work required to connect to the Philips Hue bridge. This call is idempotent.
+	Connect() (err error)
+	// Do sends a command to the to the Philips Hue bridge on behalf of the configured user.
 	Do(method string, address string, message []byte, resp interface{}) (err error)
 }
 

@@ -23,7 +23,8 @@ type BasicState struct {
 	Sat int `json:"sat,omitempty"`
 	// The x and y coordinates of a color in CIE color space. The first entry is the x coordinate and the second entry is
 	// the y coordinate. Both x and y are between 0 and 1.
-	Xy [2]float64 `json:"xy,omitempty"`
+	// Note: omitempty is not respected with type [2]float64.
+	Xy []float64 `json:"xy,omitempty"`
 	// The Mired Color temperature of the light. 2012 connected lights are capable of 153 (6500K) to 500 (2000K).
 	Ct int `json:"ct,omitempty"`
 	// The alert effect, which is a temporary change to the bulb’s state. This can take one of the following values:
@@ -135,7 +136,8 @@ type NewLightState struct {
 	// Increments or decrements the value of the xy. xy_inc is ignored if the xy attribute is provided. Any ongoing color
 	// transition is stopped. Setting a value of 0 also stops any ongoing transition. Will stop at it's gamut boundaries.
 	// The bridge will return the xy value after the increment is performed. Max value [0.5, 0.5].
-	XyInc [2]float64 `json:"xy_inc,omitempty"`
+	// Note: omitempty is not respected with type [2]float64.
+	XyInc []float64 `json:"xy_inc,omitempty"`
 }
 ```
 

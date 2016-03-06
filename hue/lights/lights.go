@@ -18,8 +18,8 @@ type Client struct {
 }
 
 // NewClient takes a *hue.Client and returns a client for interacting with lights.
-func NewClient(hueClient hue.Client) (client *Client, err error) {
-	return &Client{client: hueClient}, nil
+func NewClient(hueClient hue.Client) (client *Client) {
+	return &Client{client: hueClient}
 }
 
 // GetAll gets a list of all lights that have been discovered by the Philips Hue bridge.
@@ -65,10 +65,8 @@ func (c *Client) Rename(id, name string) (err error) {
 	type Body struct {
 		Name string `json:"name"`
 	}
-	message, err := json.Marshal(Body{Name: name})
-	if err != nil {
-		return err
-	}
+	// Error cannot occur since the stucture can be marshaled.
+	message, _ := json.Marshal(Body{Name: name})
 	log.WithFields(log.Fields{
 		"package":  "github.com/drombosky/disco-dance-party/hue/light",
 		"function": "(c *Client) Rename",
@@ -83,16 +81,14 @@ func (c *Client) Rename(id, name string) (err error) {
 
 // Set allows the user to turn the light on and off, modify the hue and effects.
 func (c *Client) Set(id string, state message.NewLightState) (err error) {
-	message, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
+	// Error cannot occur since the stucture can be marshaled.
+	message, _ := json.Marshal(state)
 	log.WithFields(log.Fields{
 		"package":  "github.com/drombosky/disco-dance-party/hue/light",
 		"function": "(c *Client) SetState",
 		"request":  string(message),
 	}).Debugf("Set state for %v to %v", id, string(message))
-
+	fmt.Println(string(message))
 	if err = c.client.Do("PUT", fmt.Sprintf("/api/<username>/lights/%v/state", id), message, nil); err != nil {
 		return err
 	}
@@ -106,7 +102,7 @@ func (c *Client) Delete(id string) (err error) {
 		"function": "(c *Client) Delete",
 	}).Debugf("Delete %v", id)
 
-	if err = c.client.Do("PUT", fmt.Sprintf("/api/<username>/lights/%v/state", id), nil, nil); err != nil {
+	if err = c.client.Do("DELETE", fmt.Sprintf("/api/<username>/lights/%v", id), nil, nil); err != nil {
 		return err
 	}
 	return nil

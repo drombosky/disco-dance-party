@@ -20,7 +20,7 @@ Client represents a client to control lights via the Philips Hue bridge.
 #### func  NewClient
 
 ```go
-func NewClient(hueClient hue.Client) (client *Client, err error)
+func NewClient(hueClient hue.Client) (client *Client)
 ```
 NewClient takes a *hue.Client and returns a client for interacting with lights.
 
